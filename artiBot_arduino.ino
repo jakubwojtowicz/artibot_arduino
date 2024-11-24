@@ -8,8 +8,14 @@
 <Motor info>
   <Max rpm> 220 </Max rpm> 
   <Min rpm> 30 </Min rpm>
+  <Max m/s> 0.7 </Max m/s> 
+  <Min m/s> 0.15 </Min m/s>
   <Encoder resolution> 374 </Encoder resolution>
 </Motor info>
+<Servo info>
+  <Max left> -70 </Max left> 
+  <Min right> 70 </Min right>
+</Servo info>
 */
 #include <Servo.h>
 #include "motor_control.h"
@@ -28,8 +34,7 @@ float measured_speed = 0.0;
 float measured_speed_ms = 0.0;
 int plot_const_l = 0;
 int plot_const_h = 1;
-int pwm = 0;
-uint8_t target_servo_pos = 90;
+uint8_t target_servo_pos = 110;
 
 Servo servo;  
 Encoder encoder(66);
@@ -45,14 +50,61 @@ void setup()
 
 void loop() 
 {
-  getInputValues();
+  getInputValuesFromROS();
+  if(target_speed == 0)
+  {
+    motorController.stop();
+    motorRegulator.reset();
+  }
+  else
+  {
+    motorController.setDirection(target_speed > 0 ? 'F':'B');
+    measured_speed = encoder.measureSpeed();
+    int pwm = motorRegulator.calculate(encoder.metersPerSecondToRpm(abs(target_speed)), measured_speed);
+    motorController.setSpeed(pwm);
+  }
   servo.write(target_servo_pos);
-  motorController.setDirection(target_speed>0 ? 'F':'B');
-  measured_speed = encoder.measureSpeed();
-  pwm = motorRegulator.calculate(encoder.metersPerSecondToRpm(abs(target_speed)), measured_speed);
-  motorController.setSpeed(pwm);
+}
 
-  plot();
+void getInputValuesFromROS()
+{
+  // Check if data is available on serial
+  if (Serial.available() > 0) {
+    // Read the incoming data
+    String command = Serial.readStringUntil('\n');  // Read until newline
+    int mIndex = command.indexOf('M');
+    int aIndex = command.indexOf('A');
+
+    if (mIndex != -1 && aIndex != -1) {
+      // Split the command into servo position and motor speed
+      String motorStr = command.substring(mIndex + 1, aIndex);
+      String servoStr = command.substring(aIndex + 1);
+
+      motorStr.trim();
+      servoStr.trim();
+
+      // Convert the strings to integers
+      target_servo_pos = servoStr.toInt() + 110;
+      target_speed = motorStr.toFloat();
+    }
+  }
+}
+
+
+void getInputValues()
+{
+  if(Serial.available()>0)
+  {
+    char cCo=Serial.read();
+    if(cCo == 'V')
+    {
+      target_speed = Serial.parseFloat();
+    }
+    else if(cCo == 'S')
+    {
+      target_servo_pos = Serial.parseInt() + 110;
+    }
+  }
 }
 
 void plot()
@@ -67,24 +119,5 @@ void plot()
   Serial.println(plot_const_h);
 }
 
-void getInputValues()
-{
-  if(Serial.available()>0)
-  {
-    char cCo=Serial.read();
-    if(cCo == 'V')
-    {
-      target_speed = Serial.parseFloat();
-      if(target_speed == 0)
-      {
-        motorRegulator.reset();
-      }
-    }
-    else if(cCo == 'S')
-    {
-      target_servo_pos = Serial.parseInt();
-    }
-  }
-}
 
 

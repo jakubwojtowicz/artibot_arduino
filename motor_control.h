@@ -19,6 +19,9 @@ public:
 
     // Set motor speed
     void setSpeed(int pwm);
+
+    // Stop motor
+    void stop();
 };
 
 

@@ -29,3 +29,10 @@ void MotorController::setSpeed(int pwm)
 {
     analogWrite(enA, pwm);
 }
+
+// Set motor speed
+void MotorController::stop()
+{
+    digitalWrite(in1, LOW);
+    digitalWrite(in2, LOW);
+}
