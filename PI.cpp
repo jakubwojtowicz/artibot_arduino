@@ -1,36 +1,36 @@
 #include "PI.h"
 
-//#PI Regulator
-float Kp = 0.2;
-float Ki = 0.15;
-float integral = 0;
 
-int calculatePI(int target_speed, int measured_speed)
+// Constructor
+PIRegulator::PIRegulator(float kp, float ki) : Kp(kp), Ki(ki), integral(0) {}
+
+// Calculate the PI output
+int PIRegulator::calculate(int targetSpeed, int measuredSpeed)
 {
-  int error = target_speed - measured_speed;
-  //calculate integral - short method 
-  integral += error;
+    int error = targetSpeed - measuredSpeed;
 
-  float output = Kp * error + Ki * integral;
+    // Update the integral
+    integral += error;
 
-  //output = target_speed;
-  //regulator limitations
-  if (output > 255)
-  {
-      //anti windup
-      integral -= error;
-      output = 255;
-  }
+    // Calculate the output
+    float output = Kp * error + Ki * integral;
 
-  else if (output <= 0)
-  {
-      output = 0;
-  }
+    // Apply output limits and anti-windup
+    if (output > 255)
+    {
+        integral -= error; // Anti-windup
+        output = 255;
+    }
+    else if (output < 0)
+    {
+        output = 0;
+    }
 
-  return output;
+    return static_cast<int>(output);
 }
 
-void resetPI()
+// Reset the integral term
+void PIRegulator::reset()
 {
-  integral = 0;
+    integral = 0;
 }

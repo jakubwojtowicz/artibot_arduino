@@ -2,11 +2,40 @@
 #define ENCODER_H
 
 #include <Arduino.h>
-#include "includes.h"
 
-void attachEncoderInterrupt();
-void encoderInterrupt();
-float measureSpeed();
-void initializeImpulses();
+class Encoder
+{
+private:
+    static constexpr uint16_t resolution = 374; // Encoder resolution
+    static constexpr int impulsesArraySize = 11; // Size of the impulses array
+    float impulses[impulsesArraySize];           // Array to store impulse times
+    uint8_t currentImpulse;                     // Current index in the impulses array
+    float savedTime;                            // Timestamp of the last interrupt
+    float previousTime;                         // Timestamp of the previous interrupt
+    float diameter_mm;                          // Wheel diameter
 
-#endif
+    // Initialize the impulses array
+    void initializeImpulses();
+
+public:
+    // Constructor
+    Encoder(float diameter_mm);
+
+    // Attach the encoder interrupt
+    void attachInterruptHandler(uint8_t pin);
+
+    // Interrupt handler (static to comply with attachInterrupt requirements)
+    static void interruptHandler();
+
+    // Measure the speed RPM
+    float measureSpeed();
+
+    // Convert rpm to meters per second
+    float rpmToMetersPerSecond(float rpm);
+
+    // Convert meters per second to rpm
+    float metersPerSecondToRpm(float speed_m_s);
+
+};
+
+#endif // ENCODER_H

@@ -3,51 +3,68 @@
   <Title> ArtiBot motor speed measurement and regulation. </Title> 
   <Author> Jakub Wójtowicz </Author>
   <Creation Date> 05.12.2023 </Creation Date>
+  <Last update> 24.11.2024 </Last update>
 </Info>
-<Motor settings>
+<Motor info>
   <Max rpm> 220 </Max rpm> 
   <Min rpm> 30 </Min rpm>
   <Encoder resolution> 374 </Encoder resolution>
-</Motor settings>
+</Motor info>
 */
-
-#include "includes.h"
 #include <Servo.h>
-#include <TimerOne.h>
+#include "motor_control.h"
+#include "encoder.h"
+#include "PI.h"
 
-int target_speed = 0;
-char target_direction = 'F';
-int target_servo_pos = 97;
+#define enA 5
+#define in1 6
+#define in2 7
+#define ENC 3
+#define SERVO 11
+#define BOUDRATE 9600 
+
+float target_speed = 0.0;
+float measured_speed = 0.0;
+float measured_speed_ms = 0.0;
+int plot_const_l = 0;
+int plot_const_h = 1;
+int pwm = 0;
+uint8_t target_servo_pos = 90;
+
+Servo servo;  
+Encoder encoder(66);
+PIRegulator motorRegulator(0.2,0.15);
+MotorController motorController(in1, in2, enA);
+
 void setup() 
 {
   Serial.begin(BOUDRATE);
-  pinMode(enA, OUTPUT);
-  pinMode(in1, OUTPUT);
-  pinMode(in2, OUTPUT);
-  attachServo();
-  //attachEncoderInterrupt();
+  servo.attach(SERVO);
+  encoder.attachInterruptHandler(ENC);
 }
 
 void loop() 
 {
   getInputValues();
-  setServoPos(target_servo_pos);
-  setMotorDirection(target_direction);
-  //setMotorSpeed(target_speed);
-  analogWrite(enA, target_speed);
-  printVariables();
+  servo.write(target_servo_pos);
+  motorController.setDirection(target_speed>0 ? 'F':'B');
+  measured_speed = encoder.measureSpeed();
+  pwm = motorRegulator.calculate(encoder.metersPerSecondToRpm(abs(target_speed)), measured_speed);
+  motorController.setSpeed(pwm);
+
+  plot();
 }
 
-void printVariables()
+void plot()
 {
-  Serial.print("TargetSpeed:");
+  measured_speed_ms = encoder.rpmToMetersPerSecond(measured_speed);
+  Serial.print(plot_const_l);
+  Serial.print(",");
   Serial.print(target_speed);
   Serial.print(",");
-  Serial.print("Direction:");
-  Serial.print(target_direction == 'F' ? "Forward" : "Backwards");
+  Serial.print(measured_speed_ms);
   Serial.print(",");
-  Serial.print("TargetServoPos:");
-  Serial.println(target_servo_pos);
+  Serial.println(plot_const_h);
 }
 
 void getInputValues()
@@ -57,58 +74,17 @@ void getInputValues()
     char cCo=Serial.read();
     if(cCo == 'V')
     {
-      target_speed = Serial.parseInt();
+      target_speed = Serial.parseFloat();
       if(target_speed == 0)
       {
-        resetPI();
+        motorRegulator.reset();
       }
-    }
-    if(cCo == 'D')
-    {
-      target_direction = Serial.read();
-    }
-    else if(cCo == 'R')
-    {
-      resetPI();
     }
     else if(cCo == 'S')
     {
       target_servo_pos = Serial.parseInt();
     }
   }
-}
-
-Servo servo;  
-int goal_pos = 97; 
-int actual_pos = 97;
-int inc = 5;
-
-void attachServo()
-{
-  servo.attach(SERVO);
-  servo.write(goal_pos);
-}
-
-void setServoPos(int position)
-{
-  goal_pos = position;
-  if(actual_pos == goal_pos)
-  {
-    return;
-  }
-  if(abs(actual_pos-goal_pos)<inc)
-  {
-    actual_pos = goal_pos;
-  }
-  else if(actual_pos < goal_pos)
-  {
-    actual_pos+=inc;
-  }
-  else if(actual_pos > goal_pos)
-  {
-    actual_pos-=inc;
-  }
-  servo.write(actual_pos);
 }
 
 

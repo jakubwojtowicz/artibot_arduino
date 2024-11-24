@@ -1,20 +1,31 @@
 #include "motor_control.h"
 
-void setMotorDirection(char direction)
+// Constructor
+MotorController::MotorController(uint8_t in1Pin, uint8_t in2Pin, uint8_t enAPin)
+    : in1(in1Pin), in2(in2Pin), enA(enAPin)
 {
-  if(direction == 'F')
-  {
-  digitalWrite(in1, LOW);
-  digitalWrite(in2, HIGH);
-  }
-  else if(direction == 'B')
-  {
-  digitalWrite(in2, LOW);
-  digitalWrite(in1, HIGH);
-  }
+    pinMode(in1, OUTPUT);
+    pinMode(in2, OUTPUT);
+    pinMode(enA, OUTPUT);
 }
 
-void setMotorSpeed(int target_speed)
+// Set motor direction
+void MotorController::setDirection(char direction)
 {
-  analogWrite(enA, calculatePI(target_speed, measureSpeed()));
+    if (direction == 'B') // Forward
+    {
+        digitalWrite(in1, LOW);
+        digitalWrite(in2, HIGH);
+    }
+    else if (direction == 'F') // Backward
+    {
+        digitalWrite(in2, LOW);
+        digitalWrite(in1, HIGH);
+    }
+}
+
+// Set motor speed
+void MotorController::setSpeed(int pwm)
+{
+    analogWrite(enA, pwm);
 }
