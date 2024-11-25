@@ -26,7 +26,7 @@
 #define in1 6
 #define in2 7
 #define ENC 3
-#define SERVO 11
+#define SERVO 9
 #define BOUDRATE 9600 
 
 float target_speed = 0.0;
@@ -38,7 +38,7 @@ uint8_t target_servo_pos = 110;
 
 Servo servo;  
 Encoder encoder(66);
-PIRegulator motorRegulator(0.2,0.15);
+PIRegulator motorRegulator(0.1,0.5);
 MotorController motorController(in1, in2, enA);
 
 void setup() 
@@ -50,6 +50,7 @@ void setup()
 
 void loop() 
 {
+  encoder.processImpulses();
   getInputValuesFromROS();
   if(target_speed == 0)
   {

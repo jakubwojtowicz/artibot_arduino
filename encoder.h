@@ -13,6 +13,7 @@ private:
     float savedTime;                            // Timestamp of the last interrupt
     float previousTime;                         // Timestamp of the previous interrupt
     float diameter_mm;                          // Wheel diameter
+    bool newImpulseFlag;                        // Impulse flag 
 
     // Initialize the impulses array
     void initializeImpulses();
@@ -26,6 +27,9 @@ public:
 
     // Interrupt handler (static to comply with attachInterrupt requirements)
     static void interruptHandler();
+
+    // Process impulses
+    void processImpulses();
 
     // Measure the speed RPM
     float measureSpeed();

@@ -4,7 +4,7 @@
 Encoder* encoderInstance = nullptr; // Pointer to a single Encoder instance for ISR compatibility
 
 // Constructor
-Encoder::Encoder(float wheelDiameter) : diameter_mm(wheelDiameter), currentImpulse(0), savedTime(0), previousTime(0)
+Encoder::Encoder(float wheelDiameter) : diameter_mm(wheelDiameter), currentImpulse(0), savedTime(0), previousTime(0), newImpulseFlag(false)
 {
     initializeImpulses();
 }
@@ -30,16 +30,27 @@ void Encoder::interruptHandler()
 {
     if (encoderInstance)
     {
+        // Record timestamp and increment counter
         encoderInstance->savedTime = micros();
-        encoderInstance->impulses[encoderInstance->currentImpulse] = 
-            (encoderInstance->savedTime - encoderInstance->previousTime) / 1000000.0;
-        encoderInstance->previousTime = encoderInstance->savedTime;
+        encoderInstance->newImpulseFlag = true; // Set a flag to process in the main loop
+    }
+}
 
-        encoderInstance->currentImpulse++;
-        if (encoderInstance->currentImpulse >= impulsesArraySize)
+// Process impulses
+void Encoder::processImpulses()
+{
+    if (newImpulseFlag)
+    {
+        impulses[currentImpulse] = (savedTime - previousTime) / 1000000.0;
+        previousTime = savedTime;
+
+        currentImpulse++;
+        if (currentImpulse >= impulsesArraySize)
         {
-            encoderInstance->currentImpulse = 0;
+            currentImpulse = 0;
         }
+
+        newImpulseFlag = false; // Clear the flag
     }
 }
 
